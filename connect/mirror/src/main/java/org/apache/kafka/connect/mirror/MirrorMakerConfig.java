@@ -37,19 +37,22 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.stream.Collectors;
 
-/** Top-level config describing replication flows between multiple Kafka clusters.
+/**
+ * Top-level config describing replication flows between multiple Kafka
+ * clusters.
  *
- *  Supports cluster-level properties of the form cluster.x.y.z, and replication-level
- *  properties of the form source->target.x.y.z.
- *  e.g.
+ * Supports cluster-level properties of the form cluster.x.y.z, and
+ * replication-level
+ * properties of the form source->target.x.y.z.
+ * e.g.
  *
- *      clusters = A, B, C
- *      A.bootstrap.servers = aaa:9092
- *      A.security.protocol = SSL
- *      --->%---
- *      A->B.enabled = true
- *      A->B.producer.client.id = "A-B-producer"
- *      --->%---
+ * clusters = A, B, C
+ * A.bootstrap.servers = aaa:9092
+ * A.security.protocol = SSL
+ * --->%---
+ * A->B.enabled = true
+ * A->B.producer.client.id = "A-B-producer"
+ * --->%---
  *
  */
 public class MirrorMakerConfig extends AbstractConfig {
@@ -67,17 +70,16 @@ public class MirrorMakerConfig extends AbstractConfig {
     private static final String KEY_CONVERTER_CLASS_CONFIG = "key.converter";
     private static final String VALUE_CONVERTER_CLASS_CONFIG = "value.converter";
     private static final String HEADER_CONVERTER_CLASS_CONFIG = "header.converter";
-    private static final String BYTE_ARRAY_CONVERTER_CLASS =
-        "org.apache.kafka.connect.converters.ByteArrayConverter";
+    private static final String BYTE_ARRAY_CONVERTER_CLASS = "org.apache.kafka.connect.converters.ByteArrayConverter";
     private static final String REPLICATION_FACTOR = "replication.factor";
 
     static final String SOURCE_CLUSTER_PREFIX = "source.cluster.";
     static final String TARGET_CLUSTER_PREFIX = "target.cluster.";
 
     private final Plugins plugins;
-   
+
     public MirrorMakerConfig(Map<?, ?> props) {
-        super(CONFIG_DEF, props, true);
+        super(CONFIG_DEF, props, false);
         plugins = new Plugins(originalsStrings());
     }
 
@@ -99,9 +101,10 @@ public class MirrorMakerConfig extends AbstractConfig {
         return pairs;
     }
 
-    /** Construct a MirrorClientConfig from properties of the form cluster.x.y.z.
-      * Use to connect to a cluster based on the MirrorMaker top-level config file.
-      */
+    /**
+     * Construct a MirrorClientConfig from properties of the form cluster.x.y.z.
+     * Use to connect to a cluster based on the MirrorMaker top-level config file.
+     */
     public MirrorClientConfig clientConfig(String cluster) {
         Map<String, String> props = new HashMap<>();
         props.putAll(originalsStrings());
@@ -134,28 +137,29 @@ public class MirrorMakerConfig extends AbstractConfig {
                 props.putIfAbsent(k, v);
             }
         }
- 
+
         return props;
     }
 
-    // loads worker configs based on properties of the form x.y.z and cluster.x.y.z 
+    // loads worker configs based on properties of the form x.y.z and cluster.x.y.z
     Map<String, String> workerConfig(SourceAndTarget sourceAndTarget) {
         Map<String, String> props = new HashMap<>();
         props.putAll(clusterProps(sourceAndTarget.target()));
-      
+
         // Accept common top-level configs that are otherwise ignored by MM2.
         // N.B. all other worker properties should be configured for specific herders,
         // e.g. primary->backup.client.id
         props.putAll(stringsWithPrefix("offset.storage"));
         props.putAll(stringsWithPrefix("config.storage"));
         props.putAll(stringsWithPrefix("status.storage"));
-        props.putAll(stringsWithPrefix("key.converter")); 
-        props.putAll(stringsWithPrefix("value.converter")); 
+        props.putAll(stringsWithPrefix("key.converter"));
+        props.putAll(stringsWithPrefix("value.converter"));
         props.putAll(stringsWithPrefix("header.converter"));
         props.putAll(stringsWithPrefix("task"));
         props.putAll(stringsWithPrefix("worker"));
- 
-        // transform any expression like ${provider:path:key}, since the worker doesn't do so
+
+        // transform any expression like ${provider:path:key}, since the worker doesn't
+        // do so
         props = transform(props);
         props.putAll(stringsWithPrefix(CONFIG_PROVIDERS_CONFIG));
 
@@ -167,8 +171,8 @@ public class MirrorMakerConfig extends AbstractConfig {
                 + sourceAndTarget.source() + ".internal");
         props.putIfAbsent(DistributedConfig.CONFIG_TOPIC_CONFIG, "mm2-configs."
                 + sourceAndTarget.source() + ".internal");
-        props.putIfAbsent(KEY_CONVERTER_CLASS_CONFIG, BYTE_ARRAY_CONVERTER_CLASS); 
-        props.putIfAbsent(VALUE_CONVERTER_CLASS_CONFIG, BYTE_ARRAY_CONVERTER_CLASS); 
+        props.putIfAbsent(KEY_CONVERTER_CLASS_CONFIG, BYTE_ARRAY_CONVERTER_CLASS);
+        props.putIfAbsent(VALUE_CONVERTER_CLASS_CONFIG, BYTE_ARRAY_CONVERTER_CLASS);
         props.putIfAbsent(HEADER_CONVERTER_CLASS_CONFIG, BYTE_ARRAY_CONVERTER_CLASS);
 
         return props;
@@ -180,9 +184,9 @@ public class MirrorMakerConfig extends AbstractConfig {
 
         props.putAll(originalsStrings());
         props.keySet().retainAll(MirrorConnectorConfig.CONNECTOR_CONFIG_DEF.names());
-        
+
         props.putAll(stringsWithPrefix(CONFIG_PROVIDERS_CONFIG));
-        
+
         props.putAll(withPrefix(SOURCE_CLUSTER_PREFIX, clusterProps(sourceAndTarget.source())));
         props.putAll(withPrefix(TARGET_CLUSTER_PREFIX, clusterProps(sourceAndTarget.target())));
 
@@ -193,18 +197,19 @@ public class MirrorMakerConfig extends AbstractConfig {
 
         // override with connector-level properties
         props.putAll(stringsWithPrefixStripped(sourceAndTarget.source() + "->"
-            + sourceAndTarget.target() + "."));
+                + sourceAndTarget.target() + "."));
 
         // disabled by default
         props.putIfAbsent(MirrorConnectorConfig.ENABLED, "false");
 
-        // don't transform -- the worker will handle transformation of Connector and Task configs
+        // don't transform -- the worker will handle transformation of Connector and
+        // Task configs
         return props;
     }
 
     List<String> configProviders() {
         return getList(CONFIG_PROVIDERS_CONFIG);
-    } 
+    }
 
     Map<String, String> transform(Map<String, String> props) {
         // transform worker config according to config.providers
@@ -214,8 +219,7 @@ public class MirrorMakerConfig extends AbstractConfig {
             ConfigProvider configProvider = plugins.newConfigProvider(
                     this,
                     CONFIG_PROVIDERS_CONFIG + "." + name,
-                    Plugins.ClassLoaderUsage.PLUGINS
-            );
+                    Plugins.ClassLoaderUsage.PLUGINS);
             providers.put(name, configProvider);
         }
         ConfigTransformer transformer = new ConfigTransformer(providers);
@@ -223,33 +227,33 @@ public class MirrorMakerConfig extends AbstractConfig {
         providers.values().forEach(x -> Utils.closeQuietly(x, "config provider"));
         return transformed;
     }
- 
+
     protected static final ConfigDef CONFIG_DEF = new ConfigDef()
             .define(CLUSTERS_CONFIG, Type.LIST, Importance.HIGH, CLUSTERS_DOC)
             .define(CONFIG_PROVIDERS_CONFIG, Type.LIST, Collections.emptyList(), Importance.LOW, CONFIG_PROVIDERS_DOC)
             // security support
             .define(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG,
-                Type.STRING,
-                CommonClientConfigs.DEFAULT_SECURITY_PROTOCOL,
-                Importance.MEDIUM,
-                CommonClientConfigs.SECURITY_PROTOCOL_DOC)
+                    Type.STRING,
+                    CommonClientConfigs.DEFAULT_SECURITY_PROTOCOL,
+                    Importance.MEDIUM,
+                    CommonClientConfigs.SECURITY_PROTOCOL_DOC)
             .withClientSslSupport()
             .withClientSaslSupport();
 
     private Map<String, String> stringsWithPrefixStripped(String prefix) {
         return originalsStrings().entrySet().stream()
-            .filter(x -> x.getKey().startsWith(prefix))
-            .collect(Collectors.toMap(x -> x.getKey().substring(prefix.length()), x -> x.getValue()));
+                .filter(x -> x.getKey().startsWith(prefix))
+                .collect(Collectors.toMap(x -> x.getKey().substring(prefix.length()), x -> x.getValue()));
     }
 
     private Map<String, String> stringsWithPrefix(String prefix) {
         Map<String, String> strings = originalsStrings();
         strings.keySet().removeIf(x -> !x.startsWith(prefix));
         return strings;
-    } 
+    }
 
     static Map<String, String> withPrefix(String prefix, Map<String, String> props) {
         return props.entrySet().stream()
-            .collect(Collectors.toMap(x -> prefix + x.getKey(), x -> x.getValue()));
+                .collect(Collectors.toMap(x -> prefix + x.getKey(), x -> x.getValue()));
     }
 }

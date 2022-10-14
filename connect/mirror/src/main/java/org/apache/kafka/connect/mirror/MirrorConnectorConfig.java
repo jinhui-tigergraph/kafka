@@ -30,16 +30,22 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.time.Duration;
 
-/** Shared config properties used by MirrorSourceConnector, MirrorCheckpointConnector, and MirrorHeartbeatConnector.
- *  <p>
- *  Generally, these properties are filled-in automatically by MirrorMaker based on a top-level mm2.properties file.
- *  However, when running MM2 connectors as plugins on a Connect-as-a-Service cluster, these properties must be configured manually,
- *  e.g. via the Connect REST API.
- *  </p>
- *  <p>
- *  An example configuration when running on Connect (not via MirrorMaker driver):
- *  </p>
- *  <pre>
+/**
+ * Shared config properties used by MirrorSourceConnector,
+ * MirrorCheckpointConnector, and MirrorHeartbeatConnector.
+ * <p>
+ * Generally, these properties are filled-in automatically by MirrorMaker based
+ * on a top-level mm2.properties file.
+ * However, when running MM2 connectors as plugins on a Connect-as-a-Service
+ * cluster, these properties must be configured manually,
+ * e.g. via the Connect REST API.
+ * </p>
+ * <p>
+ * An example configuration when running on Connect (not via MirrorMaker
+ * driver):
+ * </p>
+ * 
+ * <pre>
  *      {
  *        "name": "MirrorSourceConnector",
  *        "connector.class": "org.apache.kafka.connect.mirror.MirrorSourceConnector",
@@ -54,7 +60,7 @@ import java.time.Duration;
  *        "emit.heartbeats.interval.seconds": "1",
  *        "sync.topic.acls.enabled": "false"
  *      }
- *  </pre>
+ * </pre>
  */
 public class MirrorConnectorConfig extends AbstractConfig {
 
@@ -80,8 +86,7 @@ public class MirrorConnectorConfig extends AbstractConfig {
     private static final String REPLICATION_POLICY_CLASS_DOC = "Class which defines the remote topic naming convention.";
     public static final String REPLICATION_POLICY_SEPARATOR = MirrorClientConfig.REPLICATION_POLICY_SEPARATOR;
     private static final String REPLICATION_POLICY_SEPARATOR_DOC = "Separator used in remote topic naming convention.";
-    public static final String REPLICATION_POLICY_SEPARATOR_DEFAULT =
-            MirrorClientConfig.REPLICATION_POLICY_SEPARATOR_DEFAULT;
+    public static final String REPLICATION_POLICY_SEPARATOR_DEFAULT = MirrorClientConfig.REPLICATION_POLICY_SEPARATOR_DEFAULT;
     public static final String REPLICATION_FACTOR = "replication.factor";
     private static final String REPLICATION_FACTOR_DOC = "Replication factor for newly created remote topics.";
     public static final int REPLICATION_FACTOR_DEFAULT = 2;
@@ -197,7 +202,7 @@ public class MirrorConnectorConfig extends AbstractConfig {
     }
 
     protected MirrorConnectorConfig(ConfigDef configDef, Map<String, String> props) {
-        super(configDef, props, true);
+        super(configDef, props, false);
     }
 
     String connectorName() {
@@ -297,7 +302,8 @@ public class MirrorConnectorConfig extends AbstractConfig {
     }
 
     String checkpointsTopic() {
-        // Checkpoint topics are not "remote topics", as they are not replicated, so we don't
+        // Checkpoint topics are not "remote topics", as they are not replicated, so we
+        // don't
         // need to use ReplicationPolicy here.
         return sourceClusterAlias() + MirrorClientConfig.CHECKPOINTS_TOPIC_SUFFIX;
     }
@@ -404,7 +410,7 @@ public class MirrorConnectorConfig extends AbstractConfig {
                     ConfigDef.Type.LIST,
                     TOPICS_DEFAULT,
                     ConfigDef.Importance.HIGH,
-                    TOPICS_DOC) 
+                    TOPICS_DOC)
             .define(
                     TOPICS_BLACKLIST,
                     ConfigDef.Type.LIST,
@@ -416,7 +422,7 @@ public class MirrorConnectorConfig extends AbstractConfig {
                     ConfigDef.Type.LIST,
                     GROUPS_DEFAULT,
                     ConfigDef.Importance.HIGH,
-                    GROUPS_DOC) 
+                    GROUPS_DOC)
             .define(
                     GROUPS_BLACKLIST,
                     ConfigDef.Type.LIST,

@@ -26,15 +26,15 @@ import java.util.Map;
 
 /**
  * <p>
- * Configuration options for Tasks. These only include Kafka Connect system-level configuration
+ * Configuration options for Tasks. These only include Kafka Connect
+ * system-level configuration
  * options.
  * </p>
  */
 public class TaskConfig extends AbstractConfig {
 
     public static final String TASK_CLASS_CONFIG = "task.class";
-    private static final String TASK_CLASS_DOC =
-            "Name of the class for this task. Must be a subclass of org.apache.kafka.connect.connector.Task";
+    private static final String TASK_CLASS_DOC = "Name of the class for this task. Must be a subclass of org.apache.kafka.connect.connector.Task";
 
     private static ConfigDef config;
 
@@ -48,6 +48,6 @@ public class TaskConfig extends AbstractConfig {
     }
 
     public TaskConfig(Map<String, ?> props) {
-        super(config, props, true);
+        super(config, props, false);
     }
 }

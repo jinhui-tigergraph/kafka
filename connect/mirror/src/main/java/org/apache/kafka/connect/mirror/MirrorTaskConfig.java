@@ -41,8 +41,8 @@ public class MirrorTaskConfig extends MirrorConnectorConfig {
             return Collections.emptySet();
         }
         return fields.stream()
-            .map(MirrorUtils::decodeTopicPartition)
-            .collect(Collectors.toSet());
+                .map(MirrorUtils::decodeTopicPartition)
+                .collect(Collectors.toSet());
     }
 
     Set<String> taskConsumerGroups() {
@@ -51,25 +51,25 @@ public class MirrorTaskConfig extends MirrorConnectorConfig {
             return Collections.emptySet();
         }
         return new HashSet<>(fields);
-    } 
+    }
 
     MirrorMetrics metrics() {
         MirrorMetrics metrics = new MirrorMetrics(this);
         metricsReporters().forEach(metrics::addReporter);
         return metrics;
     }
- 
+
     protected static final ConfigDef TASK_CONFIG_DEF = new ConfigDef(CONNECTOR_CONFIG_DEF)
-        .define(
-            TASK_TOPIC_PARTITIONS,
-            ConfigDef.Type.LIST,
-            null,
-            ConfigDef.Importance.LOW,
-            TASK_TOPIC_PARTITIONS_DOC)
-        .define(
-            TASK_CONSUMER_GROUPS,
-            ConfigDef.Type.LIST,
-            null,
-            ConfigDef.Importance.LOW,
-            TASK_CONSUMER_GROUPS_DOC);
+            .define(
+                    TASK_TOPIC_PARTITIONS,
+                    ConfigDef.Type.LIST,
+                    null,
+                    ConfigDef.Importance.LOW,
+                    TASK_TOPIC_PARTITIONS_DOC)
+            .define(
+                    TASK_CONSUMER_GROUPS,
+                    ConfigDef.Type.LIST,
+                    null,
+                    ConfigDef.Importance.LOW,
+                    TASK_CONSUMER_GROUPS_DOC);
 }
