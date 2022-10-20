@@ -158,7 +158,7 @@ do
 done
 
 # classpath addition for release
-for file in "$base_dir"/libs/*;
+for file in "$base_dir"/libs/{**,.}/*.jar;
 do
   if should_include_file "$file"; then
     CLASSPATH="$CLASSPATH":"$file"
