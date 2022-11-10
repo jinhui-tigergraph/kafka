@@ -68,7 +68,7 @@ versions += [
   grgit: "4.0.1",
   httpclient: "4.5.11",
   easymock: "4.1",
-  jackson: "2.13.4",
+  jackson: "2.14.0",
   jackson_databind: "2.14.0",
   jacoco: "0.8.3",
   // 9.4.25 renamed closeOutput to completeOutput (https://github.com/eclipse/jetty.project/commit/c5acf965067478784b54e2d241ec58fdb0b2c9fe)
