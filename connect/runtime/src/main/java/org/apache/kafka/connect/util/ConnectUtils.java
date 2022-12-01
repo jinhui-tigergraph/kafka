@@ -69,29 +69,29 @@ public final class ConnectUtils {
 
     /**
      * Encode byte array in order of
-     * 1. base64
-     * 2. increment by 10 on each byte
+     * 1. base64 encode
+     * 2. decrement by 3 on each byte
      * to mask sensitive data in Kafka Connect service.
      */
     public static byte[] tgEncode(byte[] data) {
         byte[] b64EncodedBytes = Base64.getEncoder().encode(data);
         byte[] buffer = new byte[b64EncodedBytes.length];
         for (int i = 0; i < b64EncodedBytes.length; i++) {
-            buffer[i] = (byte) (b64EncodedBytes[i] + 10);
+            buffer[i] = (byte) (b64EncodedBytes[i] - 3);
         }
         return buffer;
     }
 
     /**
      * Decode byte array in order of
-     * 1. decrement by 10 on each byte
-     * 2. base64
+     * 1. increment by 3 on each byte
+     * 2. base64 decode
      * to recover the original content.
      */
     public static byte[] tgDecode(byte[] data) {
         byte[] buffer = new byte[data.length];
         for (int i = 0; i < data.length; i++) {
-            buffer[i] = (byte) (data[i] - 10);
+            buffer[i] = (byte) (data[i] + 3);
         }
         return Base64.getDecoder().decode(buffer);
     }
