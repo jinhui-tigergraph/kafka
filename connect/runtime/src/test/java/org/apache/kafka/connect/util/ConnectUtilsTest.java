@@ -26,6 +26,7 @@ import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertArrayEquals;
 
 public class ConnectUtilsTest {
 
@@ -60,4 +61,16 @@ public class ConnectUtilsTest {
         ConnectUtils.lookupKafkaClusterId(adminClient);
     }
 
+    @Test
+    public void testTGEncodeAndDecode() {
+        String[] testCases = new String[] {
+                "",
+                "hello world",
+                "{\"password\":\"some-secret\"}"
+        };
+        for (String testCase : testCases) {
+            byte[] input = testCase.getBytes();
+            assertArrayEquals(ConnectUtils.tgDecode(ConnectUtils.tgEncode(input)), input);
+        }
+    }
 }

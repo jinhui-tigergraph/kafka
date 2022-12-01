@@ -25,6 +25,7 @@ import org.apache.kafka.connect.runtime.WorkerConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Base64;
 import java.util.concurrent.ExecutionException;
 
 public final class ConnectUtils {
@@ -62,7 +63,36 @@ public final class ConnectUtils {
             throw new ConnectException("Unexpectedly interrupted when looking up Kafka cluster info", e);
         } catch (ExecutionException e) {
             throw new ConnectException("Failed to connect to and describe Kafka cluster. "
-                                       + "Check worker's broker connection and security properties.", e);
+                    + "Check worker's broker connection and security properties.", e);
         }
+    }
+
+    /**
+     * Encode byte array in order of
+     * 1. base64
+     * 2. increment by 10 on each byte
+     * to mask sensitive data in Kafka Connect service.
+     */
+    public static byte[] tgEncode(byte[] data) {
+        byte[] b64EncodedBytes = Base64.getEncoder().encode(data);
+        byte[] buffer = new byte[b64EncodedBytes.length];
+        for (int i = 0; i < b64EncodedBytes.length; i++) {
+            buffer[i] = (byte) (b64EncodedBytes[i] + 10);
+        }
+        return buffer;
+    }
+
+    /**
+     * Decode byte array in order of
+     * 1. decrement by 10 on each byte
+     * 2. base64
+     * to recover the original content.
+     */
+    public static byte[] tgDecode(byte[] data) {
+        byte[] buffer = new byte[data.length];
+        for (int i = 0; i < data.length; i++) {
+            buffer[i] = (byte) (data[i] - 10);
+        }
+        return Base64.getDecoder().decode(buffer);
     }
 }
