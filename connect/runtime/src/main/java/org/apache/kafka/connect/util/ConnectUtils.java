@@ -16,6 +16,8 @@
  */
 package org.apache.kafka.connect.util;
 
+import com.google.gson.Gson;
+import com.google.gson.JsonSyntaxException;
 import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.common.KafkaFuture;
 import org.apache.kafka.common.InvalidRecordException;
@@ -30,6 +32,10 @@ import java.util.concurrent.ExecutionException;
 
 public final class ConnectUtils {
     private static final Logger log = LoggerFactory.getLogger(ConnectUtils.class);
+
+    private static final int currentEncodeVersion = 1;
+    private static final int shiftDistance = 3;
+    private static final Gson gson = new Gson();
 
     public static Long checkAndConvertTimestamp(Long timestamp) {
         if (timestamp == null || timestamp >= 0)
@@ -71,28 +77,82 @@ public final class ConnectUtils {
      * Encode byte array in order of
      * 1. base64 encode
      * 2. decrement by 3 on each byte
-     * to mask sensitive data in Kafka Connect service.
+     * to mask sensitive data in Kafka Connect service. Then wrap the version and
+     * the final byte array into class
+     * TGConnectConfig and convert to JSON.
      */
-    public static byte[] tgEncode(byte[] data) {
+    public static byte[] encode(byte[] data) {
         byte[] b64EncodedBytes = Base64.getEncoder().encode(data);
         byte[] buffer = new byte[b64EncodedBytes.length];
         for (int i = 0; i < b64EncodedBytes.length; i++) {
-            buffer[i] = (byte) (b64EncodedBytes[i] - 3);
+            buffer[i] = (byte) (b64EncodedBytes[i] - shiftDistance);
         }
-        return buffer;
+        TGConnectConfig config = new TGConnectConfig(currentEncodeVersion, buffer);
+        return gson.toJson(config).getBytes();
     }
 
     /**
-     * Decode byte array in order of
+     * If the data is an object of TGConnectConfig and version is
+     * currentEncodeVersion, decode byte array in order of
      * 1. increment by 3 on each byte
      * 2. base64 decode
      * to recover the original content.
+     *
+     * Otherwise, if it's not an object of TGConnectConfig, return the original data
+     * as is. If the version is not currentEncodeVersion, throw an error for now. In
+     * future, more decode methods will be possibly supported as encoding algorithm
+     * evolves.
      */
-    public static byte[] tgDecode(byte[] data) {
-        byte[] buffer = new byte[data.length];
-        for (int i = 0; i < data.length; i++) {
-            buffer[i] = (byte) (data[i] + 3);
+    public static byte[] decode(byte[] data) {
+        TGConnectConfig config;
+        try {
+            config = gson.fromJson(new String(data), TGConnectConfig.class);
+        } catch (JsonSyntaxException e) {
+            StringBuilder message = new StringBuilder();
+            message.append("[");
+            for (int i = 0; i < data.length; i++) {
+                message.append(data[i]);
+                if (i < data.length - 1) {
+                    message.append(" ");
+                }
+            }
+            message.append("]");
+            throw new RuntimeException(String.format("Unknown data to decode: %s", message.toString()));
+        } catch (NullPointerException e) {
+            throw new RuntimeException("Cannot decode null value");
         }
-        return Base64.getDecoder().decode(buffer);
+
+        switch (config.version) {
+            case currentEncodeVersion:
+                if (config.value == null) {
+                    throw new RuntimeException(String.format("Value field is missing. Version: %d", config.version));
+                }
+                byte[] buffer = new byte[config.value.length];
+                for (int i = 0; i < config.value.length; i++) {
+                    buffer[i] = (byte) (config.value[i] + shiftDistance);
+                }
+                return Base64.getDecoder().decode(buffer);
+            case 0:
+                if (config.value == null) {
+                    // not a valid TGConnectConfig, return the raw data as is because it's an old
+                    // config value defined by `KafkaConfigBackingStore`
+                    return data;
+                } else {
+                    // otherwise, it contains unknown version
+                    throw new RuntimeException(String.format("Unknown version: %d", config.version));
+                }
+            default:
+                throw new RuntimeException(String.format("Unknown version: %d", config.version));
+        }
+    }
+
+    private static class TGConnectConfig {
+        private int version;
+        private byte[] value;
+
+        TGConnectConfig(int version, byte[] value) {
+            this.version = version;
+            this.value = value;
+        }
     }
 }
