@@ -24,9 +24,10 @@ import org.junit.Test;
 import java.util.Arrays;
 import java.util.List;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertThrows;
 
 public class ConnectUtilsTest {
 
@@ -62,15 +63,54 @@ public class ConnectUtilsTest {
     }
 
     @Test
-    public void testTGEncodeAndDecode() {
+    public void testEncodeAndDecode() {
         String[] testCases = new String[] {
                 "",
                 "hello world",
                 "{\"password\":\"some-secret\"}"
         };
-        for (String testCase : testCases) {
+        String[] expectedEncodeResult = new String[] {
+                "{\"version\":1,\"value\":[]}",
+                "{\"version\":1,\"value\":[94,68,83,112,95,68,53,100,97,47,54,118,95,68,78,58]}",
+                "{\"version\":1,\"value\":[98,118,71,116,86,85,75,119,97,47,54,118,87,64,70,51,70,107,75,115,95,84,82,113,96,47,83,103,96,106,83,45,70,107,45,58]}"
+        };
+        for (int i = 0; i < testCases.length; i++) {
+            String testCase = testCases[i];
             byte[] input = testCase.getBytes();
-            assertArrayEquals(ConnectUtils.tgDecode(ConnectUtils.tgEncode(input)), input);
+            byte[] encodeResult = ConnectUtils.encode(input);
+            assertEquals(expectedEncodeResult[i], new String(encodeResult));
+            byte[] decodeResult = ConnectUtils.decode(encodeResult);
+            assertArrayEquals(input, decodeResult);
         }
+    }
+
+    @Test
+    public void testDecodeEdgeCases() {
+        byte[] nonVersionBytes = "{\"foo\":\"bar\"}".getBytes();
+        byte[] decodeResult1 = ConnectUtils.decode(nonVersionBytes);
+        assertArrayEquals(nonVersionBytes, decodeResult1);
+
+        byte[] oddVersionBytes1 = "{\"version\":123,\"value\":[94,68,83,112,95,68,53,100,97,47,54,118,95,68,78,58]}"
+                .getBytes();
+        assertThrows("Expect RuntimeException thrown.", RuntimeException.class,
+                () -> ConnectUtils.decode(oddVersionBytes1));
+
+        byte[] oddVersionBytes2 = "{\"version\":0,\"value\":[94,68,83,112,95,68,53,100,97,47,54,118,95,68,78,58]}"
+                .getBytes();
+        assertThrows("Expect RuntimeException thrown.", RuntimeException.class,
+                () -> ConnectUtils.decode(oddVersionBytes2));
+
+        byte[] nonNumVersionBytes = "{\"version\":\"hello\",\"value\":[94,68,83,112,95,68,53,100,97,47,54,118,95,68,78,58]}"
+                .getBytes();
+        assertThrows("Expect RuntimeException thrown.", RuntimeException.class,
+                () -> ConnectUtils.decode(nonNumVersionBytes));
+
+        // null input
+        assertThrows("Expect RuntimeException thrown.", RuntimeException.class, () -> ConnectUtils.decode(null));
+
+        // case that has correct version number but no value
+        byte[] correctVersionBytes = "{\"version\":1,\"foo\":\"bar\"}".getBytes();
+        assertThrows("Expect RuntimeException thrown.", RuntimeException.class,
+                () -> ConnectUtils.decode(correctVersionBytes));
     }
 }
