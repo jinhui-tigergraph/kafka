@@ -41,6 +41,7 @@ import org.apache.kafka.connect.runtime.distributed.ClusterConfigState;
 import org.apache.kafka.connect.runtime.distributed.DistributedConfig;
 import org.apache.kafka.connect.util.Callback;
 import org.apache.kafka.connect.util.ConnectorTaskId;
+import org.apache.kafka.connect.util.ConnectUtils;
 import org.apache.kafka.connect.util.KafkaBasedLog;
 import org.apache.kafka.connect.util.TopicAdmin;
 import org.slf4j.Logger;
@@ -398,7 +399,7 @@ public class KafkaConfigBackingStore implements ConfigBackingStore {
         Struct connectConfig = new Struct(CONNECTOR_CONFIGURATION_V0);
         connectConfig.put("properties", properties);
         byte[] serializedConfig = converter.fromConnectData(topic, CONNECTOR_CONFIGURATION_V0, connectConfig);
-        byte[] encodedConfig = Base64.getEncoder().encode(serializedConfig);
+        byte[] encodedConfig = ConnectUtils.encode(serializedConfig);
         updateConnectorConfig(connector, encodedConfig);
     }
 
@@ -469,7 +470,7 @@ public class KafkaConfigBackingStore implements ConfigBackingStore {
             byte[] serializedConfig = converter.fromConnectData(topic, TASK_CONFIGURATION_V0, connectConfig);
             log.debug("Writing configuration for connector '{}' task {}", connector, index);
             ConnectorTaskId connectorTaskId = new ConnectorTaskId(connector, index);
-            byte[] encodedConfig = Base64.getEncoder().encode(serializedConfig);
+            byte[] encodedConfig = ConnectUtils.encode(serializedConfig);
             configLog.send(TASK_KEY(connectorTaskId), encodedConfig);
             index++;
         }
@@ -487,7 +488,7 @@ public class KafkaConfigBackingStore implements ConfigBackingStore {
             connectConfig.put("tasks", taskCount);
             byte[] serializedConfig = converter.fromConnectData(topic, CONNECTOR_TASKS_COMMIT_V0, connectConfig);
             log.debug("Writing commit for connector '{}' with {} tasks.", connector, taskCount);
-            byte[] encodedConfig = Base64.getEncoder().encode(serializedConfig);
+            byte[] encodedConfig = ConnectUtils.encode(serializedConfig);
             configLog.send(COMMIT_TASKS_KEY(connector), encodedConfig);
 
             // Read to end to ensure all the commit messages have been written
@@ -513,7 +514,7 @@ public class KafkaConfigBackingStore implements ConfigBackingStore {
         connectTargetState.put("state", state.name());
         byte[] serializedTargetState = converter.fromConnectData(topic, TARGET_STATE_V0, connectTargetState);
         log.debug("Writing target state {} for connector {}", state, connector);
-        byte[] encodedTargetState = Base64.getEncoder().encode(serializedTargetState);
+        byte[] encodedTargetState = ConnectUtils.encode(serializedTargetState);
         configLog.send(TARGET_STATE_KEY(connector), encodedTargetState);
     }
 
@@ -525,7 +526,7 @@ public class KafkaConfigBackingStore implements ConfigBackingStore {
         sessionKeyStruct.put("algorithm", sessionKey.key().getAlgorithm());
         sessionKeyStruct.put("creation-timestamp", sessionKey.creationTimestamp());
         byte[] serializedSessionKey = converter.fromConnectData(topic, SESSION_KEY_V0, sessionKeyStruct);
-        byte[] encodedSessionKey = Base64.getEncoder().encode(serializedSessionKey);
+        byte[] encodedSessionKey = ConnectUtils.encode(serializedSessionKey);
         try {
             configLog.send(SESSION_KEY_KEY, encodedSessionKey);
             configLog.readToEnd().get(READ_TO_END_TIMEOUT_MS, TimeUnit.MILLISECONDS);
@@ -583,7 +584,7 @@ public class KafkaConfigBackingStore implements ConfigBackingStore {
             try {
                 byte[] decodedValue;
                 if (record != null && record.value() != null) {
-                    decodedValue = Base64.getDecoder().decode(record.value());
+                    decodedValue = ConnectUtils.decode(record.value());
                 } else {
                     decodedValue = record.value();
                 }
@@ -849,8 +850,8 @@ public class KafkaConfigBackingStore implements ConfigBackingStore {
             } else {
                 log.error("Discarding config update record with invalid key: {}", record.key());
             }
-        }
 
+        }
     }
 
     private ConnectorTaskId parseTaskId(String key) {
